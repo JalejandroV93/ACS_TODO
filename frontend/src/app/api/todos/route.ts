@@ -77,3 +77,12 @@ export async function PUT(request: Request) {
     return NextResponse.json({ error: 'Failed to update todo' }, { status: 500 })
   }
 }
+
+export async function OPTIONS() {
+  return new NextResponse(null, {
+    status: 204,
+    headers: {
+      'Allow': 'GET, POST, PUT, OPTIONS',
+    },
+  })
+}

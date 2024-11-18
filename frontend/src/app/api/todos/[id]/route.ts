@@ -7,6 +7,45 @@ const SECRET_KEY = new TextEncoder().encode(
   process.env.JWT_SECRET_KEY
 )
 
+
+// Handler for GET requests
+export async function GET(
+  request: Request,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const id = await Promise.resolve(params.id)
+    const cookieStore = await cookies()
+    const token = cookieStore.get('auth-token')?.value
+    
+    if (!token) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const { payload } = await jwtVerify(token, SECRET_KEY)
+    const userId = Number(payload.userId)
+
+    const todo = await prisma.todo.findFirst({
+      where: { 
+        id: parseInt(id),
+        userId
+      }
+    })
+
+    if (!todo) {
+      return NextResponse.json({ error: 'Todo not found' }, { status: 404 })
+    }
+
+    return NextResponse.json(todo)
+  } catch (error) {
+    console.error(error)
+    return NextResponse.json(
+      { error: 'Failed to fetch todo' },
+      { status: 500 }
+    )
+  }
+}
+
 export async function PUT(
   request: Request,
   { params }: { params: { id: string } }
@@ -91,4 +130,13 @@ export async function DELETE(
       { status: 500 }
     )
   }
+}
+
+export async function OPTIONS() {
+  return new NextResponse(null, {
+    status: 204,
+    headers: {
+      'Allow': 'GET, PUT, DELETE, OPTIONS',
+    },
+  })
 }
