@@ -1,23 +1,18 @@
-import { NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
-import { cookies } from 'next/headers'
 import { jwtVerify } from 'jose'
+import { cookies } from 'next/headers'
+import { NextResponse } from 'next/server'
 
 const SECRET_KEY = new TextEncoder().encode(
-  process.env.JWT_SECRET_KEY!
+  process.env.JWT_SECRET_KEY
 )
-
-type Params = Promise<{ id: string }>
-
 
 export async function PUT(
   request: Request,
-  props: { params: Params }
+  { params }: { params: { id: string } }
 ) {
   try {
-    // Conversión del parámetro a número
-    const params = await props.params
-    const todoId = parseInt(params.id, 10)
+    const id = await Promise.resolve(params.id)
     const cookieStore = await cookies()
     const token = cookieStore.get('auth-token')?.value
     
@@ -28,9 +23,12 @@ export async function PUT(
     const { payload } = await jwtVerify(token, SECRET_KEY)
     const userId = Number(payload.userId)
     const updates = await request.json()
-
+    
     const todo = await prisma.todo.findFirst({
-      where: { id: todoId, userId },
+      where: { 
+        id: parseInt(id),
+        userId
+      }
     })
 
     if (!todo) {
@@ -38,28 +36,31 @@ export async function PUT(
     }
 
     const updatedTodo = await prisma.todo.update({
-      where: { id: todoId },
-      data: updates,
+      where: { 
+        id: parseInt(id)
+      },
+      data: updates
     })
-
+    
     return NextResponse.json(updatedTodo)
   } catch (error) {
     console.error(error)
-    return NextResponse.json({ error: 'Failed to update todo' }, { status: 500 })
+    return NextResponse.json(
+      { error: 'Failed to update todo' },
+      { status: 500 }
+    )
   }
 }
 
-
 export async function DELETE(
-  _request: Request,
-  context: { params: Params }
+  request: Request,
+  { params }: { params: { id: string } }
 ) {
   try {
-    const params = await context.params
-    const todoId = parseInt(params.id)
+    const id = await Promise.resolve(params.id)
     const cookieStore = await cookies()
     const token = cookieStore.get('auth-token')?.value
-
+    
     if (!token) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
@@ -69,7 +70,7 @@ export async function DELETE(
 
     const todo = await prisma.todo.findFirst({
       where: { 
-        id: todoId,
+        id: parseInt(id),
         userId
       }
     })
@@ -79,10 +80,10 @@ export async function DELETE(
     }
 
     await prisma.todo.delete({
-      where: { id: todoId }
+      where: { id: parseInt(id) }
     })
-
-    return NextResponse.json({ id: todoId })
+    
+    return NextResponse.json({ id })
   } catch (error) {
     console.error(error)
     return NextResponse.json(
