@@ -1,19 +1,23 @@
-// app/api/todos/[id]/route.ts
 import { NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { cookies } from 'next/headers'
 import { jwtVerify } from 'jose'
 
 const SECRET_KEY = new TextEncoder().encode(
-  process.env.JWT_SECRET_KEY
+  process.env.JWT_SECRET_KEY!
 )
+
+type Params = Promise<{ id: string }>
+
 
 export async function PUT(
   request: Request,
-  { params }: { params: { id: string } }
+  props: { params: Params }
 ) {
   try {
-    const id = await Promise.resolve(params.id)
+    // Conversión del parámetro a número
+    const params = await props.params
+    const todoId = parseInt(params.id, 10)
     const cookieStore = await cookies()
     const token = cookieStore.get('auth-token')?.value
     
@@ -24,12 +28,9 @@ export async function PUT(
     const { payload } = await jwtVerify(token, SECRET_KEY)
     const userId = Number(payload.userId)
     const updates = await request.json()
-    
+
     const todo = await prisma.todo.findFirst({
-      where: { 
-        id: parseInt(id),
-        userId
-      }
+      where: { id: todoId, userId },
     })
 
     if (!todo) {
@@ -37,31 +38,28 @@ export async function PUT(
     }
 
     const updatedTodo = await prisma.todo.update({
-      where: { 
-        id: parseInt(id)
-      },
-      data: updates
+      where: { id: todoId },
+      data: updates,
     })
-    
+
     return NextResponse.json(updatedTodo)
   } catch (error) {
     console.error(error)
-    return NextResponse.json(
-      { error: 'Failed to update todo' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Failed to update todo' }, { status: 500 })
   }
 }
 
+
 export async function DELETE(
-  request: Request,
-  { params }: { params: { id: string } }
+  _request: Request,
+  context: { params: Params }
 ) {
   try {
-    const id = await Promise.resolve(params.id)
+    const params = await context.params
+    const todoId = parseInt(params.id)
     const cookieStore = await cookies()
     const token = cookieStore.get('auth-token')?.value
-    
+
     if (!token) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
@@ -71,7 +69,7 @@ export async function DELETE(
 
     const todo = await prisma.todo.findFirst({
       where: { 
-        id: parseInt(id),
+        id: todoId,
         userId
       }
     })
@@ -81,10 +79,10 @@ export async function DELETE(
     }
 
     await prisma.todo.delete({
-      where: { id: parseInt(id) }
+      where: { id: todoId }
     })
-    
-    return NextResponse.json({ id })
+
+    return NextResponse.json({ id: todoId })
   } catch (error) {
     console.error(error)
     return NextResponse.json(
