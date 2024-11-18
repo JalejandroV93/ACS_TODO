@@ -9,14 +9,15 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  //provider = "postgresql"
+  provider = "mysql"
   url      = env("DATABASE_URL")
 }
 
 model User {
   id        Int      @id @default(autoincrement())
   username  String   @unique
-  password  String   // Will store hashed password
+  password  String // Will store hashed password
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   todos     Todo[]
