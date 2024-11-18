@@ -50,7 +50,7 @@ export const TodoItem = ({ id, text, index, createdAt, moveTodo, updateTodo, del
   }
 
   return (
-    <Card ref={ref} style={{ opacity: isDragging ? 0.5 : 1 }} className="mb-2">
+    <Card ref={ref} style={{ opacity: isDragging ? 0.5 : 1 }} className="mb-2 hover:bg-zinc-200 dark:hover:bg-zinc-600 ease-in-out transition-colors">
     <CardContent className="flex items-center justify-between p-4">
       <div className="flex items-center w-full space-x-2">
         <GripVertical className="cursor-move flex-shrink-0" />

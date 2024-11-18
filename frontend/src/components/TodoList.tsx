@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { DndProvider } from 'react-dnd'
 import { HTML5Backend } from 'react-dnd-html5-backend'
 import { Button } from "@/components/ui/button"
@@ -8,6 +8,9 @@ import { TodoItem } from './TodoItem'
 import { Todo } from '@prisma/client'
 import { ModeToggle } from './ui/modeToggle'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import debounce from 'lodash/debounce'
+import { Icons } from './ui/icons'
+import { toast } from 'sonner'
 
 interface TodoUpdate {
   text?: string;
@@ -25,38 +28,90 @@ export default function TodoList() {
   }, [])
 
   const fetchTodos = async () => {
-    const response = await fetch('/api/todos')
-    const data: Todo[] = await response.json()
-    setTodos(data)
+    try {
+      const response = await fetch('/api/todos')
+      if (!response.ok) throw new Error('Error al cargar las tareas')
+      const data: Todo[] = await response.json()
+      setTodos(data)
+    } catch (error) {
+      console.error(error)
+      toast.error('Error al cargar las tareas')
+    }
   }
 
   const handleAddTodo = async () => {
     if (!newTodo.trim()) return
     
-    const response = await fetch('/api/todos', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text: newTodo }),
-    })
-    const todo: Todo = await response.json()
-    setTodos([...todos, todo])
-    setNewTodo('')
+    try {
+      const response = await fetch('/api/todos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: newTodo }),
+      })
+      
+      if (!response.ok) throw new Error('Error al crear la tarea')
+      
+      const todo: Todo = await response.json()
+      setTodos([...todos, todo])
+      setNewTodo('')
+      toast.success('Tarea creada exitosamente')
+    } catch (error) {
+      console.error(error)
+      toast.error('Error al crear la tarea')
+    }
   }
 
   const handleUpdateTodo = async (id: number, updates: TodoUpdate) => {
-    const response = await fetch(`/api/todos/${id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(updates),
-    })
-    const updatedTodo: Todo = await response.json()
-    setTodos(todos.map(todo => todo.id === id ? updatedTodo : todo))
+    try {
+      const response = await fetch(`/api/todos/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updates),
+      })
+      
+      if (!response.ok) throw new Error('Error al actualizar la tarea')
+      
+      const updatedTodo: Todo = await response.json()
+      setTodos(todos.map(todo => todo.id === id ? updatedTodo : todo))
+      toast.success('Tarea actualizada exitosamente')
+    } catch (error) {
+      console.error(error)
+      toast.error('Error al actualizar la tarea')
+    }
   }
 
   const handleDeleteTodo = async (id: number) => {
-    await fetch(`/api/todos/${id}`, { method: 'DELETE' })
-    setTodos(todos.filter(todo => todo.id !== id))
+    try {
+      const response = await fetch(`/api/todos/${id}`, { method: 'DELETE' })
+      if (!response.ok) throw new Error('Error al eliminar la tarea')
+      
+      setTodos(todos.filter(todo => todo.id !== id))
+      toast.success('Tarea eliminada exitosamente')
+    } catch (error) {
+      console.error(error)
+      toast.error('Error al eliminar la tarea')
+    }
   }
+
+  // Debounced version of the reorder API call
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const debouncedReorder = useCallback(
+    debounce(async (newTodos: Todo[]) => {
+      try {
+        const response = await fetch('/api/todos/reorder', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ todos: newTodos }),
+        })
+        
+        if (!response.ok) throw new Error('Error al reordenar las tareas')
+      } catch (error) {
+        console.error(error)
+        toast.error('Error al reordenar las tareas')
+      }
+    }, 500),
+    []
+  )
 
   const moveTodo = (dragIndex: number, hoverIndex: number) => {
     const draggedTodo = todos[dragIndex]
@@ -66,12 +121,14 @@ export default function TodoList() {
     const newTodos = updatedTodos.map((todo, index) => ({ ...todo, order: index }))
     setTodos(newTodos)
     
-    fetch('/api/todos/reorder', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ todos: newTodos }),
-    })
+    debouncedReorder(newTodos)
   }
+
+  useEffect(() => {
+    return () => {
+      debouncedReorder.cancel()
+    }
+  }, [debouncedReorder])
 
   if (!mounted) return null
 
@@ -91,7 +148,7 @@ export default function TodoList() {
               placeholder="Agregar una Nueva Tarea"
               className="flex-grow"
             />
-            <Button onClick={handleAddTodo}>Agregar</Button>
+            <Button onClick={handleAddTodo}><Icons.add />Agregar</Button>
           </div>
           <div className="space-y-2">
             {todos.sort((a, b) => a.order - b.order).map((todo, index) => (
