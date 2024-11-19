@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
+import { TouchBackend } from 'react-dnd-touch-backend';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { TodoItem } from "./TodoItem";
@@ -14,6 +15,8 @@ import { useRouter } from "next/navigation";
 import debounce from "lodash/debounce";
 import { Navigation } from "@/components/Navigation";
 import { Icons } from "@/components/ui/icons";
+import { useIsMobile } from "@/hooks/use-mobile";
+
 interface TodoUpdate {
   text?: string;
   order?: number;
@@ -24,6 +27,13 @@ export default function TodoList() {
   const [newTodo, setNewTodo] = useState("");
   const [mounted, setMounted] = useState(false);
   const router = useRouter();
+  const isMobile = useIsMobile();
+
+  const touchBackendOptions = {
+    enableMouseEvents: true,
+    enableTouchEvents: true,
+    delayTouchStart: 100, // ajusta este valor según necesites
+  };
 
   useEffect(() => {
     setMounted(true);
@@ -166,7 +176,7 @@ export default function TodoList() {
   if (!mounted) return null;
 
   return (
-    <DndProvider backend={HTML5Backend}>
+    <DndProvider backend={isMobile ? TouchBackend : HTML5Backend} options={isMobile ? touchBackendOptions : undefined}>
       <div className="container mx-auto px-4 py-4">
         <Card className="w-full max-w-md mx-auto">
           <CardHeader className="flex flex-col sm:flex-row items-center justify-between space-y-2 sm:space-y-0 pb-2">
