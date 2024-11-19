@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Icons } from "@/components/ui/icons"
 import Link from 'next/link'
 import { toast } from 'sonner'
+import Image from 'next/image'
 
 export function LoginForm() {
   const [isLoading, setIsLoading] = useState(false)
@@ -50,7 +51,8 @@ export function LoginForm() {
 
   return (
     <Card className="w-full max-w-md">
-      <CardHeader className="space-y-1">
+      <CardHeader className="space-y-1 items-center">
+        <Image src="/todo-logo.png" alt="Logo" width={120} height={100} />
         <CardTitle className="text-2xl text-center">Iniciar Sesión</CardTitle>
         <CardDescription className="text-center">
           Ingresa tus credenciales para continuar
@@ -61,11 +63,11 @@ export function LoginForm() {
           {/* {error && (
             <div className="text-red-500 text-sm mb-4">{error}</div>
           )} */}
-          <div className="space-y-2">
+          <div className="grid w-full max-w-sm items-center gap-1.5 mb-2">
             <Label htmlFor="username">Nombre de Usuario</Label>
             <Input name="username" id="username" placeholder="Ingresa tu usuario" required />
           </div>
-          <div className="space-y-2">
+          <div className="grid w-full max-w-sm items-center gap-1.5">
             <Label htmlFor="password">Contraseña</Label>
             <Input name="password" id="password" type="password" placeholder="Ingresa tu contraseña" required />
           </div>

@@ -20,7 +20,6 @@ export function Navigation() {
   return (
     <Button variant="outline" onClick={handleLogout} >
       <Icons.logout className="w-6 h-6" />
-      Salir
     </Button>
   );
 }
