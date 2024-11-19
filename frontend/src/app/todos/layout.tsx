@@ -1,4 +1,3 @@
-import { Navigation } from "@/components/Navigation";
 
 export default function RootLayout({
   children,
@@ -7,8 +6,8 @@ export default function RootLayout({
 }>) {
   return (
       <div className="min-h-screen ">
-        <Navigation />
-        <div className="py-6">{children}</div>
+       {children}
       </div>
   );
 }
+
