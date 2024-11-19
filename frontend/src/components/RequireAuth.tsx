@@ -19,7 +19,8 @@ export function RequireAuth({ children }: RequireAuthProps) {
         router.push('/')
       }
     }
-  }, [loading, user, router])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, user, router, window.location.pathname])
 
   if (loading) {
     return (
