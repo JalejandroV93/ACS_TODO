@@ -78,7 +78,7 @@ export function LoginForm() {
         </form>
       </CardContent>
       <CardFooter>
-        <p className="px-8 text-center text-sm text-muted-foreground">
+        <p className="text-center text-sm text-muted-foreground">
           No tienes una cuenta?{" "}
           <Link
             className="underline underline-offset-4 hover:text-primary"

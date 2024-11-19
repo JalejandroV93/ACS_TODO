@@ -1,11 +1,15 @@
-"use client"
+"use client";
 
-import dynamic from 'next/dynamic'
-
-const TodoList = dynamic(() => import('@/components/TodoList'), {
-  ssr: false 
-})
+import dynamic from "next/dynamic";
+import { RequireAuth } from "@/components/RequireAuth";
+const TodoList = dynamic(() => import("@/components/TodoList"), {
+  ssr: false,
+});
 
 export default function TodoPage() {
-  return <TodoList />
+  return (
+    <RequireAuth>
+      <TodoList />
+    </RequireAuth>
+  );
 }
