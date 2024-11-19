@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Pencil, Trash2, GripVertical } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 type TodoItemProps = {
   id: number;
@@ -33,6 +34,7 @@ export const TodoItem = ({
 }: TodoItemProps) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editText, setEditText] = useState(text);
+  const isMobile = useIsMobile();
 
   const [{ isDragging }, drag] = useDrag({
     type: "TODO",
@@ -57,9 +59,15 @@ export const TodoItem = ({
   const ref = useRef<HTMLDivElement>(null);
   drag(drop(ref));
 
-  const handleUpdate = () => {
-    updateTodo(id, { text: editText });
-    setIsEditing(false);
+  const handleUpdate = async () => {
+    try {
+      await updateTodo(id, { text: editText });
+      setIsEditing(false);
+    } catch (error) {
+      console.error("Failed to update todo:", error);
+      // Optionally reset to original text on error
+      setEditText(text);
+    }
   };
 
   const handleToggleComplete = () => {
@@ -79,7 +87,9 @@ export const TodoItem = ({
     >
       <CardContent className="flex items-center justify-between p-4">
         <div className="flex items-center w-full space-x-3">
-          <GripVertical className="cursor-move flex-shrink-0 text-zinc-400" />
+          <div className={`${isMobile ? "touch-none" : ""} cursor-move`}>
+            <GripVertical className="cursor-move flex-shrink-0 text-zinc-400" />
+          </div>
           <Checkbox
             checked={completed}
             onCheckedChange={handleToggleComplete}
