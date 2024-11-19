@@ -74,7 +74,7 @@ export function RegisterForm() {
         </form>
       </CardContent>
       <CardFooter>
-        <p className="px-8 text-center text-sm text-muted-foreground">
+        <p className="text-center text-sm text-muted-foreground">
           Ya tienes una Cuenta?{" "}
           <Link
             className="underline underline-offset-4 hover:text-primary"
