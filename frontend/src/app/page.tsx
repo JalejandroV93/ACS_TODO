@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation'
 import { LoginForm } from '@/components/auth/LoginForm'
 
 export default async function Home() {
-  const cookieStore = await cookies()
+  const cookieStore = cookies()
   const authToken = cookieStore.get('auth-token')
 
   if (authToken) {
