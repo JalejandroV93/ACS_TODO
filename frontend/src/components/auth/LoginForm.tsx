@@ -52,7 +52,7 @@ export function LoginForm() {
   return (
     <Card className="w-full max-w-md">
       <CardHeader className="space-y-1 items-center">
-        <Image src="/todo-logo.png" alt="Logo" width={120} height={100} />
+        <Image src="/icons/todo-logo.png" alt="Logo" width={120} height={100} />
         <CardTitle className="text-2xl text-center">Iniciar Sesión</CardTitle>
         <CardDescription className="text-center">
           Ingresa tus credenciales para continuar

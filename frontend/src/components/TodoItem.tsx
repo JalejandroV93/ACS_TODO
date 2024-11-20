@@ -7,6 +7,7 @@ import { Pencil, Trash2, GripVertical } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { memo } from "react";
 
 type TodoItemProps = {
   id: number;
@@ -22,15 +23,15 @@ type TodoItemProps = {
   deleteTodo: (id: number) => void;
 };
 
-export const TodoItem = ({
-  id,
-  text,
-  completed,
+export const TodoItem = memo(({ 
+  id, 
+  text, 
+  completed, 
   index,
   createdAt,
   moveTodo,
   updateTodo,
-  deleteTodo,
+  deleteTodo 
 }: TodoItemProps) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editText, setEditText] = useState(text);
@@ -146,4 +147,6 @@ export const TodoItem = ({
       </CardContent>
     </Card>
   );
-};
+});
+TodoItem.displayName = 'TodoItem';
+
