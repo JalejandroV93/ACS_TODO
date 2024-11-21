@@ -3,10 +3,10 @@
 import { useState, useCallback, useEffect, useMemo } from "react";
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
-import { TouchBackend } from 'react-dnd-touch-backend';
+import { TouchBackend } from "react-dnd-touch-backend";
 import { TodoItem } from "./TodoItem";
 import { Todo } from "@prisma/client";
-import { Card, CardContent, CardHeader} from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useRouter } from "next/navigation";
 
@@ -23,6 +23,9 @@ export default function TodoList() {
   const [newTodo, setNewTodo] = useState("");
   const router = useRouter();
   const isMobile = useIsMobile();
+  const [isOnline, setIsOnline] = useState(true);
+
+  
 
   const fetchTodos = useCallback(async () => {
     try {
@@ -46,6 +49,29 @@ export default function TodoList() {
     fetchTodos();
   }, [fetchTodos]);
 
+
+  useEffect(() => {
+    function updateOnlineStatus() {
+      const isOnlineNow = navigator.onLine;
+      setIsOnline(isOnlineNow);
+      
+      if (isOnlineNow) {
+        // Forzar recarga de datos cuando volvemos online
+        fetchTodos();
+      }
+    }
+    
+    window.addEventListener('online', updateOnlineStatus);
+    window.addEventListener('offline', updateOnlineStatus);
+    
+    setIsOnline(navigator.onLine);
+    
+    return () => {
+      window.removeEventListener('online', updateOnlineStatus);
+      window.removeEventListener('offline', updateOnlineStatus);
+    };
+  }, [fetchTodos]);
+
   const handleAddTodo = useCallback(async () => {
     if (!newTodo.trim()) return;
     try {
@@ -64,59 +90,82 @@ export default function TodoList() {
       }
 
       const todo: Todo = await response.json();
-      setTodos(prev => [...prev, todo]);
+      setTodos((prev) => [...prev, todo]);
       setNewTodo("");
     } catch (error) {
       console.error("Error adding todo:", error);
-      router.push("/");
-    }
-  }, [newTodo, router]);
-
-  const handleUpdateTodo = useCallback(async (id: number, updates: TodoUpdate) => {
-    try {
-      const response = await fetch(`/api/todos/${id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(updates),
-      });
-
-      if (!response.ok) {
-        if (response.status === 401) {
-          router.push("/");
-          return;
-        }
-        throw new Error("Failed to update todo");
+      //router.push("/");
+      console.error("Error adding todo:", error);
+      // Si estamos offline, crear un ID temporal
+      if (!navigator.onLine) {
+        const tempTodo = {
+          id: Date.now(),
+          text: newTodo,
+          completed: false,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          order: todos.length,
+          userId: 0, // or any default value
+        };
+        setTodos((prev) => [...prev, tempTodo]);
+        setNewTodo("");
       }
-
-      const updatedTodo: Todo = await response.json();
-      setTodos(prev => prev.map(todo => todo.id === id ? updatedTodo : todo));
-    } catch (error) {
-      console.error("Error updating todo:", error);
-      router.push("/");
     }
-  }, [router]);
+  }, [newTodo, router, todos.length]);
 
-  const handleDeleteTodo = useCallback(async (id: number) => {
-    try {
-      const response = await fetch(`/api/todos/${id}`, { method: "DELETE" });
+  const handleUpdateTodo = useCallback(
+    async (id: number, updates: TodoUpdate) => {
+      try {
+        const response = await fetch(`/api/todos/${id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(updates),
+        });
 
-      if (!response.ok) {
-        if (response.status === 401) {
-          router.push("/");
-          return;
+        if (!response.ok) {
+          if (response.status === 401) {
+            router.push("/");
+            return;
+          }
+          throw new Error("Failed to update todo");
         }
-        throw new Error("Failed to delete todo");
-      }
 
-      setTodos(prev => prev.filter(todo => todo.id !== id));
-    } catch (error) {
-      console.error("Error deleting todo:", error);
-      router.push("/");
-    }
-  }, [router]);
+        const updatedTodo: Todo = await response.json();
+        setTodos((prev) =>
+          prev.map((todo) => (todo.id === id ? updatedTodo : todo))
+        );
+      } catch (error) {
+        console.error("Error updating todo:", error);
+        router.push("/");
+      }
+    },
+    [router]
+  );
+
+  const handleDeleteTodo = useCallback(
+    async (id: number) => {
+      try {
+        const response = await fetch(`/api/todos/${id}`, { method: "DELETE" });
+
+        if (!response.ok) {
+          if (response.status === 401) {
+            router.push("/");
+            return;
+          }
+          throw new Error("Failed to delete todo");
+        }
+
+        setTodos((prev) => prev.filter((todo) => todo.id !== id));
+      } catch (error) {
+        console.error("Error deleting todo:", error);
+        router.push("/");
+      }
+    },
+    [router]
+  );
 
   const moveTodo = useCallback((dragIndex: number, hoverIndex: number) => {
-    setTodos(prev => {
+    setTodos((prev) => {
       const draggedTodo = prev[dragIndex];
       const updatedTodos = [...prev];
       updatedTodos.splice(dragIndex, 1);
@@ -139,14 +188,23 @@ export default function TodoList() {
   };
 
   return (
-    <DndProvider backend={isMobile ? TouchBackend : HTML5Backend} options={isMobile ? touchBackendOptions : undefined}>
+    <DndProvider
+      backend={isMobile ? TouchBackend : HTML5Backend}
+      options={isMobile ? touchBackendOptions : undefined}
+    >
       <div className="container mx-auto px-4 py-4">
+        {!isOnline && (
+          <div className="bg-yellow-100 p-2 rounded-md mb-4 text-sm">
+            <p className=" text-zinc-900">Modo sin conexión - Los cambios se sincronizarán cuando vuelvas a
+            estar en línea</p>
+          </div>
+        )}
         <Card className="w-full max-w-md mx-auto">
           <CardHeader>
             <TodoHeader />
           </CardHeader>
           <CardContent>
-            <TodoInput 
+            <TodoInput
               value={newTodo}
               onChange={setNewTodo}
               onAdd={handleAddTodo}

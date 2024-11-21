@@ -20,7 +20,9 @@ const geistMono = localFont({
 export const metadata: Metadata = {
   title: "ToDo App",
   description: "Proyecto para la Clase ACS",
+  generator: "Next.js",
   manifest: "/manifest.json",
+  keywords: ["nextjs", "next14", "pwa", "next-pwa"],
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
@@ -39,10 +41,10 @@ export default function RootLayout({
         <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
         <meta name="mobile-web-app-capable" content="yes"/>
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-        <script
+        {/* <script
           src="https://unpkg.com/react-scan/dist/auto.global.js"
           async
-        ></script>
+        ></script> */}
       </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
