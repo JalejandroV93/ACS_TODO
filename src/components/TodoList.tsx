@@ -1,231 +1,139 @@
 "use client";
 
-import { useState, useCallback, useEffect, useMemo } from "react";
-import { DndProvider } from "react-dnd";
-import { HTML5Backend } from "react-dnd-html5-backend";
-import { TouchBackend } from "react-dnd-touch-backend";
+import { useState, useCallback, useEffect } from "react";
 import { TodoItem } from "./TodoItem";
-import { Todo } from "@prisma/client";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useRouter } from "next/navigation";
-
-import { useIsMobile } from "@/hooks/use-mobile";
 import { TodoHeader } from "./TodoHeader";
 import { TodoInput } from "./TodoInput";
+import { TodoService, Todo } from "@/services/todos";
+import { toast } from "sonner";
+import { useAuth } from "@/context/auth";
 
-interface TodoUpdate {
-  text?: string;
-  order?: number;
-}
 export default function TodoList() {
   const [todos, setTodos] = useState<Todo[]>([]);
-  const [newTodo, setNewTodo] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
-  const isMobile = useIsMobile();
-  const [isOnline, setIsOnline] = useState(true);
-
-  
+  const { user, loading: authLoading } = useAuth();
 
   const fetchTodos = useCallback(async () => {
+    if (!user) return;
+    
     try {
-      const response = await fetch("/api/todos");
-      if (!response.ok) {
-        if (response.status === 401) {
-          router.push("/");
-          return;
-        }
-        throw new Error("Failed to fetch todos");
-      }
-      const data: Todo[] = await response.json();
+      setIsLoading(true);
+      const data = await TodoService.fetchTodos();
       setTodos(data);
     } catch (error) {
       console.error("Error fetching todos:", error);
-      router.push("/");
-    }
-  }, [router]);
-
-  useEffect(() => {
-    fetchTodos();
-  }, [fetchTodos]);
-
-
-  useEffect(() => {
-    function updateOnlineStatus() {
-      const isOnlineNow = navigator.onLine;
-      setIsOnline(isOnlineNow);
-      
-      if (isOnlineNow) {
-        // Forzar recarga de datos cuando volvemos online
-        fetchTodos();
+      if (error instanceof Error && error.message.includes('401')) {
+        router.push("/");
+      } else {
+        toast.error("Error al cargar las tareas");
       }
+    } finally {
+      setIsLoading(false);
     }
-    
-    window.addEventListener('online', updateOnlineStatus);
-    window.addEventListener('offline', updateOnlineStatus);
-    
-    setIsOnline(navigator.onLine);
-    
-    return () => {
-      window.removeEventListener('online', updateOnlineStatus);
-      window.removeEventListener('offline', updateOnlineStatus);
-    };
-  }, [fetchTodos]);
+  }, [router, user]);
 
-  const handleAddTodo = useCallback(async () => {
-    if (!newTodo.trim()) return;
+  // Nuevo useEffect que escucha cambios en user y authLoading
+  useEffect(() => {
+    if (!authLoading && user) {
+      fetchTodos();
+    }
+  }, [fetchTodos, user, authLoading]);
+
+  const handleAddTodo = async (data: { titulo: string; descripcion: string }) => {
     try {
-      const response = await fetch("/api/todos", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: newTodo }),
+      const newTodo = await TodoService.createTodo({
+        titulo: data.titulo,
+        descripcion: data.descripcion,
+        completada: false
       });
-
-      if (!response.ok) {
-        if (response.status === 401) {
-          router.push("/");
-          return;
-        }
-        throw new Error("Failed to add todo");
-      }
-
-      const todo: Todo = await response.json();
-      setTodos((prev) => [...prev, todo]);
-      setNewTodo("");
+      setTodos(prev => [...prev, newTodo]);
+      toast.success("Tarea creada exitosamente");
     } catch (error) {
       console.error("Error adding todo:", error);
-      //router.push("/");
-      console.error("Error adding todo:", error);
-      // Si estamos offline, crear un ID temporal
-      if (!navigator.onLine) {
-        const tempTodo = {
-          id: Date.now(),
-          text: newTodo,
-          completed: false,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-          order: todos.length,
-          userId: 0, // or any default value
-        };
-        setTodos((prev) => [...prev, tempTodo]);
-        setNewTodo("");
+      if (error instanceof Error && error.message.includes('401')) {
+        router.push("/");
+      } else {
+        toast.error("Error al crear la tarea");
       }
     }
-  }, [newTodo, router, todos.length]);
-
-  const handleUpdateTodo = useCallback(
-    async (id: number, updates: TodoUpdate) => {
-      try {
-        const response = await fetch(`/api/todos/${id}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(updates),
-        });
-
-        if (!response.ok) {
-          if (response.status === 401) {
-            router.push("/");
-            return;
-          }
-          throw new Error("Failed to update todo");
-        }
-
-        const updatedTodo: Todo = await response.json();
-        setTodos((prev) =>
-          prev.map((todo) => (todo.id === id ? updatedTodo : todo))
-        );
-      } catch (error) {
-        console.error("Error updating todo:", error);
-        router.push("/");
-      }
-    },
-    [router]
-  );
-
-  const handleDeleteTodo = useCallback(
-    async (id: number) => {
-      try {
-        const response = await fetch(`/api/todos/${id}`, { method: "DELETE" });
-
-        if (!response.ok) {
-          if (response.status === 401) {
-            router.push("/");
-            return;
-          }
-          throw new Error("Failed to delete todo");
-        }
-
-        setTodos((prev) => prev.filter((todo) => todo.id !== id));
-      } catch (error) {
-        console.error("Error deleting todo:", error);
-        router.push("/");
-      }
-    },
-    [router]
-  );
-
-  const moveTodo = useCallback((dragIndex: number, hoverIndex: number) => {
-    setTodos((prev) => {
-      const draggedTodo = prev[dragIndex];
-      const updatedTodos = [...prev];
-      updatedTodos.splice(dragIndex, 1);
-      updatedTodos.splice(hoverIndex, 0, draggedTodo);
-      return updatedTodos.map((todo, index) => ({
-        ...todo,
-        order: index,
-      }));
-    });
-  }, []);
-
-  const sortedTodos = useMemo(() => {
-    return [...todos].sort((a, b) => a.order - b.order);
-  }, [todos]);
-
-  const touchBackendOptions = {
-    enableMouseEvents: true,
-    enableTouchEvents: true,
-    delayTouchStart: 100, // ajusta este valor según necesites
   };
 
-  return (
-    <DndProvider
-      backend={isMobile ? TouchBackend : HTML5Backend}
-      options={isMobile ? touchBackendOptions : undefined}
-    >
-      <div className="container mx-auto px-4 py-4">
-        {!isOnline && (
-          <div className="bg-yellow-100 p-2 rounded-md mb-4 text-sm">
-            <p className=" text-zinc-900">Modo sin conexión - Los cambios se sincronizarán cuando vuelvas a
-            estar en línea</p>
-          </div>
-        )}
-        <Card className="w-full max-w-md mx-auto">
-          <CardHeader>
-            <TodoHeader />
-          </CardHeader>
-          <CardContent>
-            <TodoInput
-              value={newTodo}
-              onChange={setNewTodo}
-              onAdd={handleAddTodo}
-            />
-            <ScrollArea className="h-[650px] w-full rounded-xl border p-2">
-              <div className="space-y-2">
-                {sortedTodos.map((todo, index) => (
-                  <TodoItem
-                    key={todo.id}
-                    {...todo}
-                    index={index}
-                    moveTodo={moveTodo}
-                    updateTodo={handleUpdateTodo}
-                    deleteTodo={handleDeleteTodo}
-                  />
-                ))}
-              </div>
-            </ScrollArea>
-          </CardContent>
-        </Card>
+  const handleUpdateTodo = async (id: number, updates: Partial<Todo>) => {
+    try {
+      const updatedTodo = await TodoService.updateTodo(id, updates);
+      setTodos(prev => prev.map(todo => 
+        todo.id === id ? updatedTodo : todo
+      ));
+      toast.success("Tarea actualizada exitosamente");
+    } catch (error) {
+      console.error("Error updating todo:", error);
+      if (error instanceof Error && error.message.includes('401')) {
+        router.push("/");
+      } else {
+        toast.error("Error al actualizar la tarea");
+      }
+    }
+  };
+
+  const handleDeleteTodo = async (id: number) => {
+    try {
+      await TodoService.deleteTodo(id);
+      setTodos(prev => prev.filter(todo => todo.id !== id));
+      toast.success("Tarea eliminada exitosamente");
+    } catch (error) {
+      console.error("Error deleting todo:", error);
+      if (error instanceof Error && error.message.includes('401')) {
+        router.push("/");
+      } else {
+        toast.error("Error al eliminar la tarea");
+      }
+    }
+  };
+
+  const sortedTodos = todos.slice().sort((a, b) => {
+    return new Date(b.fecha_creacion).getTime() - new Date(a.fecha_creacion).getTime();
+  });
+
+  // Mostrar loading mientras se verifica la autenticación O se cargan los todos
+  if (authLoading || isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
       </div>
-    </DndProvider>
+    );
+  }
+
+  return (
+    <div className="container mx-auto px-4 py-4">
+      <Card className="w-full max-w-4xl mx-auto">
+        <CardHeader>
+          <TodoHeader />
+        </CardHeader>
+        <CardContent>
+          <TodoInput onAdd={handleAddTodo} />
+          <ScrollArea className="h-[650px] w-full rounded-xl border p-4 mt-4">
+            <div className="space-y-4">
+              {sortedTodos.map((todo) => (
+                <TodoItem
+                  key={todo.id}
+                  todo={todo}
+                  onUpdate={handleUpdateTodo}
+                  onDelete={handleDeleteTodo}
+                />
+              ))}
+              {todos.length === 0 && (
+                <p className="text-center text-muted-foreground py-4">
+                  No hay tareas pendientes. ¡Añade una nueva tarea!
+                </p>
+              )}
+            </div>
+          </ScrollArea>
+        </CardContent>
+      </Card>
+    </div>
   );
 }

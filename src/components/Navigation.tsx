@@ -1,25 +1,25 @@
 "use client";
-import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Icons } from "@/components/ui/icons";
-export function Navigation() {
-  const router = useRouter();
+import { useAuth } from "@/context/auth";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
-  const handleLogout = async () => {
-    try {
-      await fetch("/api/auth/logout", {
-        method: "POST",
-      });
-      router.push("/");
-      router.refresh();
-    } catch (error) {
-      console.error("Logout failed:", error);
-    }
-  };
+export function Navigation() {
+  const { logout } = useAuth();
 
   return (
-    <Button variant="outline" onClick={handleLogout} >
-      <Icons.logout className="w-6 h-6" />
-    </Button>
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button variant="outline" onClick={logout} className="gap-2 rounded-full">
+          {/* <span className="hidden sm:inline">{user?.username}</span> */}
+            <Icons.logout className="h-4 w-4" />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>
+          <p>Cerrar sesión</p>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   );
 }

@@ -1,64 +1,46 @@
-"use client";
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Icons } from "@/components/ui/icons";
-import Link from "next/link";
-import { toast } from "sonner";
-import Image from "next/image";
+'use client'
+import { useState } from "react"
+import { useRouter } from "next/navigation"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Icons } from "@/components/ui/icons"
+import Link from "next/link"
+import { toast } from "sonner"
+import Image from "next/image"
+import { AuthService } from "@/services/auth"
 
 export function RegisterForm() {
-  const [isLoading, setIsLoading] = useState(false);
-  //const [error, setError] = useState('')
-  const router = useRouter();
+  const [isLoading, setIsLoading] = useState(false)
+  const router = useRouter()
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setIsLoading(true);
-    //setError('')
+    event.preventDefault()
+    setIsLoading(true)
 
-    const formData = new FormData(event.currentTarget);
+    const formData = new FormData(event.currentTarget)
 
     try {
-      const response = await fetch("/api/auth/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          username: formData.get("username"),
-          password: formData.get("password"),
-        }),
-      });
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || "Registration failed");
-      }
-      toast.success("Cuenta creada exitosamente");
-      router.push("/");
+      await AuthService.register({
+        username: formData.get("username") as string,
+        email: formData.get("email") as string,
+        password: formData.get("password") as string,
+      })
+      
+      toast.success("Cuenta creada exitosamente")
+      router.push("/")
     } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "Error al crear la cuenta"
-      );
+      toast.error(error instanceof Error ? error.message : "Error al crear la cuenta")
     } finally {
-      setIsLoading(false);
+      setIsLoading(false)
     }
   }
 
   return (
     <Card className="w-full max-w-md">
       <CardHeader className="space-y-1 items-center">
-        <Image src="/icons/todo-logo.png" alt="Logo" width={120} height={100} />
-
+        <Image src="/todo-logo.png" alt="Logo" width={120} height={100} />
         <CardTitle className="text-2xl text-center">Crear una Cuenta</CardTitle>
         <CardDescription className="text-center">
           Ingresa tus datos para crear una cuenta
@@ -66,15 +48,22 @@ export function RegisterForm() {
       </CardHeader>
       <CardContent className="space-y-4">
         <form onSubmit={onSubmit}>
-          {/* {error && (
-            <div className="text-red-500 text-sm mb-4">{error}</div>
-          )} */}
           <div className="grid w-full max-w-sm items-center gap-1.5 mb-2">
             <Label htmlFor="username">Nombre de Usuario</Label>
             <Input
               name="username"
               id="username"
-              placeholder="Choose a username"
+              placeholder="Elige un nombre de usuario"
+              required
+            />
+          </div>
+          <div className="grid w-full max-w-sm items-center gap-1.5 mb-2">
+            <Label htmlFor="email">Correo Electrónico</Label>
+            <Input
+              name="email"
+              id="email"
+              type="email"
+              placeholder="Ingresa tu correo electrónico"
               required
             />
           </div>
@@ -84,7 +73,7 @@ export function RegisterForm() {
               name="password"
               id="password"
               type="password"
-              placeholder="Choose a password"
+              placeholder="Elige una contraseña"
               required
             />
           </div>
@@ -108,5 +97,5 @@ export function RegisterForm() {
         </p>
       </CardFooter>
     </Card>
-  );
+  )
 }

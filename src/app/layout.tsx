@@ -1,32 +1,32 @@
-import type { Metadata } from "next";
 import localFont from "next/font/local";
-import "./globals.css";
+import "./assets/styles/globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { AuthProvider } from "../context/auth";
-import { RegisterSW } from "@/components/RegisterSW";
+import { Metadata } from 'next';
 
 const geistSans = localFont({
-  src: "./fonts/GeistVF.woff",
+  src: "./assets/fonts/GeistVF.woff",
   variable: "--font-geist-sans",
   weight: "100 900",
 });
 const geistMono = localFont({
-  src: "./fonts/GeistMonoVF.woff",
+  src: "./assets/fonts/GeistMonoVF.woff",
   variable: "--font-geist-mono",
   weight: "100 900",
 });
 
 export const metadata: Metadata = {
-  title: "ToDo App",
-  description: "Proyecto para la Clase ACS",
-  generator: "Next.js",
-  manifest: "/manifest.json",
-  keywords: ["nextjs", "next14", "pwa", "next-pwa"],
-  appleWebApp: {
-    capable: true,
-    statusBarStyle: "default",
-    title: "ToDo App",
+  title: 'Mi Lista de Tareas',
+  description: 'Aplicación para gestionar tareas personales',
+  icons: {
+    icon: './assets/img/favicon.ico',
+    shortcut: './favicon.ico',
+    apple: '/icons/apple-touch-icon.png',
+    other: {
+      rel: 'apple-touch-icon-precomposed',
+      url: '/icons/apple-touch-icon-precomposed.png',
+    },
   },
 };
 
@@ -41,10 +41,7 @@ export default function RootLayout({
         <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
         <meta name="mobile-web-app-capable" content="yes"/>
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-        {/* <script
-          src="https://unpkg.com/react-scan/dist/auto.global.js"
-          async
-        ></script> */}
+       
       </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
@@ -59,7 +56,6 @@ export default function RootLayout({
             <Toaster />
           </AuthProvider>
         </ThemeProvider>
-        <RegisterSW />
       </body>
     </html>
   );
